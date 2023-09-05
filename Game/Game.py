@@ -1,5 +1,6 @@
 import pygame,sys
 from Player import Player
+import Obstacle
 
 #2 - Nesta classe irá ficar a lógica principal do jogo
 class Game:
@@ -8,15 +9,41 @@ class Game:
         playerSprite = Player((screenWidth/2,screenHeight),screenWidth,5)
         # 3 - Imagem do player
         self.player = pygame.sprite.GroupSingle(playerSprite)
+
+        # 4 - Variaveis dos obstaculos
+        self.shape = Obstacle.shape
+        self.blockSize = 6
+        self.blocks = pygame.sprite.Group()
+        self.obstacleAmount = 4
+        self.obstacleXPositions = [num * (screenWidth/self.obstacleAmount) for num in range(self.obstacleAmount )]
+        self.xStart = screenWidth/(self.obstacleAmount*self.obstacleAmount)
+        self.createMultipleObstacles(*self.obstacleXPositions,xStart=self.xStart,yStart=480)
+    
+    #Cria o obstaculo individualmente
+    def createObstacle(self,xStart,yStart,offsetX):
+        for rowIndex, row in enumerate(self.shape):
+            for colIndex, col in enumerate(row):
+                if col == "x":
+                    x = xStart + colIndex * self.blockSize + offsetX
+                    y = yStart + rowIndex * self.blockSize
+                    block = Obstacle.Block(self.blockSize,(241,79,80),x,y)
+                    self.blocks.add(block)
+    
+    #Faz várias criaçoes de obstaculos
+    def createMultipleObstacles(self,*offset,xStart,yStart):
+        for offSetX in offset:
+            self.createObstacle(xStart,yStart,offSetX)
     
     #Nesta função iremos atualizar todos as sprites
     #E desenhar todas as sprites
     def run(self):
         #Lógicas
         self.player.update()
+        
         #Gráficos
         self.player.sprite.lasers.draw(screen )
         self.player.draw(screen)
+        self.blocks.draw(screen)
 
 #1 - verifica se estamos executando este arquivo
 if __name__ == "__main__":
