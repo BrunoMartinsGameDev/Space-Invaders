@@ -16,6 +16,9 @@ class Player(pygame.sprite.Sprite):
         self.laserTempoDeRecarga = 600
 
         self.lasers = pygame.sprite.Group()
+
+        self.laserSound = pygame.mixer.Sound("Game/sound/laser.wav")
+        self.laserSound.set_volume(0.5) 
     
     #Função para pegar comando do jogador
     def getInput(self):
@@ -29,6 +32,7 @@ class Player(pygame.sprite.Sprite):
             self.shootLaser()
             self.podeAtirar = False
             self.laserTimer = pygame.time.get_ticks()
+            self.laserSound.play()
     
     #Função para limitar o jogador na tela
     def constraint(self):

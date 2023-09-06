@@ -6,6 +6,27 @@ class Alien(pygame.sprite.Sprite):
         filePath = "Game/sprites/" + type + ".png"
         self.image = pygame.image.load(filePath).convert_alpha()
         self.rect = self.image.get_rect(topleft = (x,y))
+
+        match type:
+            case 'red':
+                self.score = 100
+            case 'green':
+                self.score = 200
+            case 'yellow':
+                self.score = 300
     
     def update(self,direction):
         self.rect.x += direction
+class Extra(pygame.sprite.Sprite):
+    def __init__(self,side,screenWidth) -> None:
+        super().__init__()
+        self.image = pygame.image.load("Game/sprites/extra.png").convert_alpha()
+        if side == "right":
+            x = screenWidth + 50
+            self.speed = -3
+        else:
+            x = -50
+            self.speed = 3
+        self.rect = self.image.get_rect(topleft = (x,80))
+    def update(self):
+        self.rect.x += self.speed

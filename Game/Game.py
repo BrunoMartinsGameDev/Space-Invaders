@@ -1,8 +1,8 @@
 import pygame,sys
 from Player import Player
 import Obstacle
-from Alien import Alien
-from random import choice
+from Alien import Alien, Extra
+from random import choice,randint
 from Laser import Laser
 #2 - Nesta classe irá ficar a lógica principal do jogo
 class Game:
@@ -11,6 +11,13 @@ class Game:
         playerSprite = Player((screenWidth/2,screenHeight),screenWidth,5)
         # 3 - Imagem do player
         self.player = pygame.sprite.GroupSingle(playerSprite)
+
+        # Variaveis de vida e ponto
+        self.lives = 3
+        self.liveSurf = pygame.image.load("Game/sprites/player.png").convert_alpha()
+        self.livesXStartPosition = screenWidth - (self.liveSurf.get_size()[0] * 2 + 20)
+        self.score = 0
+        self.font = pygame.font.Font("Game/sprites/Pixeled.ttf",20)
 
         # 4 - Variaveis dos obstaculos
         self.shape = Obstacle.shape
@@ -26,7 +33,20 @@ class Game:
         self.alienLasers = pygame.sprite.Group()
         self.alienSetup(rows=6, cols= 8)
         self.alienDirection = 1
-    
+
+        # 6 - ExtraAlien
+        self.extra = pygame.sprite.GroupSingle()
+        self.extraSpawnTime = randint(400,800)
+
+        # Audios
+        music = pygame.mixer.Sound("Game/sound/music.wav")
+        music.set_volume(0.2)
+        music.play(loops=-1)
+        self.laserSound = pygame.mixer.Sound("Game/sound/laser.wav")
+        self.laserSound.set_volume(0.5)
+        self.explosionSound = pygame.mixer.Sound("Game/sound/explosion.wav")
+        self.explosionSound.set_volume(0.3)
+
     #Cria o obstaculo individualmente
     def createObstacle(self,xStart,yStart,offsetX):
         for rowIndex, row in enumerate(self.shape):
@@ -69,8 +89,74 @@ class Game:
     def alienShoot(self):
         if self.aliens.sprites():
             randomAlien = choice(self.aliens.sprites())
-            laserSprite = Laser(randomAlien.rect.center,6,screenHeight)
+            laserSprite = Laser(randomAlien.rect.center,screenHeight,6)
             self.alienLasers.add(laserSprite)
+            self.laserSound.play()
+    
+    def extraAlienTime(self):
+        self.extraSpawnTime -= 1
+        if self.extraSpawnTime <=0:
+            self.extra.add(Extra(choice(['right','left']),screenWidth))
+            self.extraSpawnTime = randint(400,800)
+    
+    def collisionCheck(self):
+        #Laser do Player
+        if self.player.sprite.lasers:
+            for laser in self.player.sprite.lasers:
+                #Colisão com obstaculos
+                if pygame.sprite.spritecollide(laser,self.blocks,True):
+                    laser.kill()
+                
+                #Colisão com aliens
+                aliensHit = pygame.sprite.spritecollide(laser,self.aliens,True)
+                if aliensHit:
+                    for alien in aliensHit:
+                        self.score += alien.score
+                    laser.kill()
+                    self.explosionSound.play()
+                    
+                #Colisão com extra
+                if pygame.sprite.spritecollide(laser,self.extra,True):
+                    self.score += 500
+                    laser.kill()
+
+        #laser dos aliens
+        if self.alienLasers:
+            for laser in self.alienLasers:
+                #colisão com obstaculos
+                if pygame.sprite.spritecollide(laser,self.blocks,True):
+                    laser.kill()
+                #colisão com player
+                if pygame.sprite.spritecollide(laser,self.player,False):
+                    laser.kill()
+                    self.lives -= 1
+                    if self.lives == 0:
+                        pygame.quit()
+                        sys.exit()
+        #aliens
+        if self.aliens:
+            for alien in self.aliens:
+                pygame.sprite.spritecollide(alien,self.blocks,True)
+            
+                if pygame.sprite.spritecollide(alien, self.player,False):
+                    pygame.quit()
+                    sys.exit()
+    
+    def displayLives(self):
+        for live in range(self.lives - 1):
+            x = self.livesXStartPosition + (live * (self.liveSurf.get_size()[0] + 10))
+            screen.blit(self.liveSurf,(x,8))
+    
+    def displayScore(self):
+        scoreSurf = self.font.render(f"Score: {self.score}",False,'white')
+        scoreRect = scoreSurf.get_rect(topleft = (10,-10))
+        screen.blit(scoreSurf,scoreRect)
+    
+    def victoryMessage(self):
+        if not self.aliens.sprites():
+            victorySurf = self.font.render("You Won",False,"white")
+            victoryRect = victorySurf.get_rect(center = (screenWidth/2,screenHeight/2))
+            screen.blit(victorySurf,victoryRect)
     #Nesta função iremos atualizar todos as sprites
     #E desenhar todas as sprites
     def run(self):
@@ -78,8 +164,10 @@ class Game:
         self.player.update()
         self.aliens.update(self.alienDirection)
         self.alienPositionChecker()
-        self.alienShoot()
         self.alienLasers.update()
+        self.extraAlienTime()
+        self.extra.update()
+        self.collisionCheck()
 
         #Gráficos
         self.player.sprite.lasers.draw(screen)
@@ -87,7 +175,27 @@ class Game:
         self.blocks.draw(screen)
         self.aliens.draw(screen)
         self.alienLasers.draw(screen)
+        self.extra.draw(screen)
+        self.displayLives()
+        self.displayScore()
+        self.victoryMessage()
 
+class CRT:
+    def __init__(self) -> None:
+        self.tv = pygame.image.load("Game/sprites/tv.png").convert_alpha()
+        self.tv = pygame.transform.scale(self.tv,(screenWidth,screenHeight))
+    
+    def createCrtLine(self):
+        lineHeight = 3
+        lineAmount = int(screenHeight/lineHeight)
+        for line in range(lineAmount):
+            yPos = line * lineHeight
+            pygame.draw.line(self.tv,"black",(0,yPos),(screenWidth,yPos),1)
+
+    def draw(self):
+        self.tv.set_alpha(randint(50,90))
+        self.createCrtLine()
+        screen.blit(self.tv,(0,0))
 #1 - verifica se estamos executando este arquivo
 if __name__ == "__main__":
     pygame.init()#inicializa o pygame
@@ -105,6 +213,7 @@ if __name__ == "__main__":
 
     #2 - Criando objeto da classe jogo
     game = Game()
+    crt = CRT()
 
     ALIENLASER = pygame.USEREVENT +1
     pygame.time.set_timer(ALIENLASER,800)
@@ -125,6 +234,7 @@ if __name__ == "__main__":
         screen.fill((30,30,30))
         #2 - Executa a função run do game
         game.run()
+        crt.draw()
 
         pygame.display.flip()
         clock.tick(60) #60 fps
