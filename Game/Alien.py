@@ -7,13 +7,13 @@ class Alien(pygame.sprite.Sprite):
         self.image = pygame.image.load(filePath).convert_alpha()
         self.rect = self.image.get_rect(topleft = (x,y))
 
-        match type:
-            case 'red':
-                self.score = 100
-            case 'green':
-                self.score = 200
-            case 'yellow':
-                self.score = 300
+        if type == 'red':
+            self.score = 100
+        elif type == 'green':
+            self.score = 200
+        elif type == 'yellow':
+            self.score = 300
+                
     
     def update(self,direction):
         self.rect.x += direction
